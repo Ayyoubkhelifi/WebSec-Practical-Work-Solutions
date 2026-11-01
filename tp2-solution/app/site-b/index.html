@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>TP 02 — Site B (8081)</title>
+</head>
+<body>
+    <h1>Site B — origine http://127.0.0.1:8081</h1>
+
+    <p>Appels <code>fetch()</code> cross-origin vers l'API du site A
+       (<code>http://127.0.0.1:8080/api.php</code>). Ouvrir la Console
+       (F12) et l'onglet Réseau à chaque appel.</p>
+
+    <p>
+        <button type="button" data-mode="none">Étape 9 — mode=none (aucun CORS)</button>
+        <button type="button" data-mode="allow">Étape 12 — mode=allow (ACAO sur B)</button>
+        <button type="button" id="btn-preflight">Étape 13 — fetch avec X-TP-Lab (preflight)</button>
+        <button type="button" data-mode="wildcard">Étape 15 — mode=wildcard (*)</button>
+    </p>
+
+    <p id="statut"></p>
+    <pre id="resultat">(résultat ici)</pre>
+
+    <script>
+        var apiBase = 'http://127.0.0.1:8080/api.php';
+        var zone      = document.getElementById('resultat');
+        var zoneStatut = document.getElementById('statut');
+
+        function afficher(texte, statut) {
+            zone.textContent = texte;
+            zoneStatut.textContent = statut;
+        }
+
+        // Étape 10 : la requête PART, mais la réponse ne peut pas être lue
+        // par JavaScript si l'en-tête Access-Control-Allow-Origin manque.
+        async function appeler(mode, enTetes) {
+            try {
+                const reponse = await fetch(apiBase + '?mode=' + encodeURIComponent(mode), {
+                    headers: enTetes || {}
+                });
+                const texte = await reponse.text();
+                afficher('Statut HTTP : ' + reponse.status + '\n\n' + texte,
+                         'Appel réussi (lire aussi Réseau).');
+            } catch (e) {
+                // Étape 10 : blocage côté navigateur (SOP/CORS) — la requête
+                // a déjà été envoyée, sa réponse n'est pas lisible ici.
+                afficher('Impossible de lire la réponse.\nDétail : ' + e,
+                         'Requête envoyée mais lecture bloquée par le navigateur (voir Réseau).');
+            }
+        }
+
+        document.querySelectorAll('button[data-mode]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                appeler(btn.dataset.mode);
+            });
+        });
+
+        // Étapes 13–14 : l'en-tête personnalisé X-TP-Lab transforme la
+        // requête en requête NON simple → le navigateur envoie d'abord un
+        // OPTIONS preflight (Origin, Access-Control-Request-Method,
+        // Access-Control-Request-Headers) avant le GET réel.
+        document.getElementById('btn-preflight').addEventListener('click', function () {
+            appeler('allow', { 'X-TP-Lab': 'tp2' });
+        });
+    </script>
+</body>
+</html>
